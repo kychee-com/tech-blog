@@ -9,9 +9,9 @@ name: Deploy
 # CI binding for `repo:kychee-com/tech-blog:...`) must be done first by an
 # operator — see DESIGN.md → "Deploying".
 #
-# The CI deploy is content-only (`--dir dist`): a CI session cannot claim
-# subdomains, and the managed subdomain already tracks the project's live
-# release, so shipping the site is all that is needed.
+# The CI deploy ships the static site slice only (`sites deploy-dir dist`): a
+# CI session cannot claim subdomains, and the managed subdomain already tracks
+# the project's live release, so shipping the site is all that is needed.
 
 on:
   push:
@@ -43,5 +43,5 @@ jobs:
         run: npm run check
       - name: Build (Astro + Pagefind search index)
         run: npm run build
-      - name: Deploy to Run402
-        run: npx run402 deploy apply --dir dist --json
+      - name: Deploy to Run402 (static site → CAS, keyless via GitHub OIDC)
+        run: npx run402 sites deploy-dir dist --project "$RUN402_PROJECT_ID"

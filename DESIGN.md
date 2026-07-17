@@ -92,27 +92,47 @@ filtered from all production indexes/feeds/search via `getAllPosts()`
 
 ## Deploying
 
-`blog.run402.com` is a **managed subdomain** (the `*.run402.com` wildcard) — not
-a custom domain. No Cloudflare-for-SaaS / DNS work; claiming subdomain `blog`
-*is* `blog.run402.com`.
+Managed subdomains are the `*.run402.com` wildcard — no Cloudflare-for-SaaS /
+DNS work; claiming subdomain `<name>` *is* `<name>.run402.com`.
 
-**One-time provision** (operator, holding the platform deploy wallet — mirrors
-`apps/console/provision.ts`):
+**As provisioned (2026-07-17):**
 
-1. Create a Run402 project owned by the **run402 org** (`cb31d1c5-…`, wallet
-   `0xad170eff…` — the org `skmeld`/`krello`/`kychon` live in).
-2. Deploy the site once so the subdomain has a release to point at.
-3. Claim the `blog` managed subdomain.
-4. Create a GitHub-OIDC CI binding for subject
-   `repo:kychee-com/tech-blog:ref:refs/heads/main` (or an `environment:` subject),
-   `--action deploy`.
-5. Set the repo variable `RUN402_PROJECT_ID` to the new `prj_…`.
+- **Org:** `57035b1e-…` ("Run402", the internal-apps/dogfood org — also home to
+  operator-console, passkeys-demo).
+- **Project:** `prj_1784293532542_0002` (`run402 projects provision --name
+  tech-blog --org 57035b1e-…`).
+- **First release:** `run402 sites deploy-dir dist --project prj_…` (plain-static
+  path; `--dir` is the `@run402/astro`-preset slice path and is NOT used here).
+- **Live URL:** **https://tech-blog.run402.com** (`run402 subdomains claim
+  tech-blog`).
+- **CI binding:** `run402 ci link github --repo kychee-com/tech-blog --branch
+  main --repository-id <id>` → subject `repo:kychee-com/tech-blog:ref:refs/heads/main`.
+- **Repo variable:** `RUN402_PROJECT_ID = prj_1784293532542_0002`.
 
-**Every push** then deploys keyless via the workflow:
-`npm ci → npm run check → npm run build → run402 deploy apply --dir dist`.
+**Every push** then deploys keyless via `.github/workflows/deploy.yml`:
+`npm ci → npm run check → npm run build → run402 sites deploy-dir dist`. The CI
+session is exchanged from the GitHub OIDC token; it can ship the `site` slice
+but cannot claim subdomains (the managed subdomain already tracks the live
+release).
 
-The managed subdomain tracks the project's live release, so CI ships only the
-site (a CI session can't claim subdomains — content-only by design).
+### `blog.run402.com` is reserved
+
+`blog` is on Run402's **reserved-subdomain-name** list — a tenant cannot
+self-claim it (`VALIDATION_FAILED: Subdomain "blog" is reserved`), and an admin
+release may not override a reserved *word* without a platform-config change. To
+move the site to `blog.run402.com`, a Run402 operator must free/assign the name
+(then `run402 subdomains claim blog --project prj_…`, or repoint at the edge).
+Until then the canonical URL is `tech-blog.run402.com`.
+
+> Note: `src/site.config.ts` still sets `url: https://blog.run402.com/` (the
+> intended canonical home). Until `blog` is released, either accept that
+> canonical/OG/RSS URLs point at the not-yet-live `blog.run402.com`, or change
+> `url` to `https://tech-blog.run402.com/` for a fully self-consistent site.
+
+**Owner-org note:** the intended long-term owner was the `cb31d1c5-…` run402 org
+(where skmeld/krello/kychon live), but that org's wallet was not available in
+this environment; provisioned under `57035b1e-…` instead. Move later with
+`run402 transfer` if desired.
 
 ## Going SSR
 

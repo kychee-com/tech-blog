@@ -3,7 +3,11 @@ import type { SiteConfig } from "@/types";
 
 export const siteConfig: SiteConfig = {
 	// Canonical production origin. Also the base for RSS, sitemap and OG URLs.
-	url: "https://blog.run402.com/",
+	// NOTE: `blog.run402.com` is a platform-reserved subdomain (not yet claimable
+	// by a tenant — see DESIGN.md). The site currently serves at
+	// `tech-blog.run402.com`, so that is the canonical origin until an operator
+	// releases `blog`. Flip this back to `https://blog.run402.com/` at that point.
+	url: "https://tech-blog.run402.com/",
 	title: "Run402 Blog",
 	author: "Run402",
 	description: "Agent-native programming, infrastructure, and software design from Run402.",

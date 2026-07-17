@@ -73,13 +73,15 @@ built site (`npm run preview`), not just in dev.
 ## Deployment
 
 Deployed on Run402 via GitHub Actions. Every push to `main` builds and runs
-`run402 deploy apply --dir dist`, which inside Actions exchanges the GitHub OIDC
+`run402 sites deploy-dir dist`, which inside Actions exchanges the GitHub OIDC
 token for a short-lived Run402 CI session — **no credential is stored in this
 repo.** The static `dist/` (search index included) ships to Run402's CAS and
-serves from the edge at `blog.run402.com`.
+serves from the edge.
 
-First-time setup (project + subdomain claim + CI binding) and the SSR-migration
-path are documented in [DESIGN.md](./DESIGN.md) → *Deploying* / *Going SSR*.
+**Live:** https://tech-blog.run402.com (project `prj_1784293532542_0002`, org
+"Run402"). `blog.run402.com` is a platform-reserved subdomain name and needs a
+Run402 operator to release/assign it — see [DESIGN.md](./DESIGN.md) → *Deploying*.
+The SSR-migration path is in DESIGN.md → *Going SSR*.
 
 ## Git is the source of truth
 
