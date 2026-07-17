@@ -1,0 +1,95 @@
+---
+import { type CollectionEntry } from "astro:content";
+import FormattedDate from "@/components/FormattedDate.astro";
+import { getAllPosts } from "@/data/post";
+import PageLayout from "@/layouts/Base.astro";
+import { collectionDateSort } from "@/utils/date";
+
+const allPosts = (await getAllPosts()).sort(collectionDateSort) as CollectionEntry<"post">[];
+const [latest, ...rest] = allPosts;
+const more = rest.slice(0, 5);
+---
+
+<PageLayout meta={{ title: "Home" }}>
+	{/* Hero */}
+	<section class="mb-20">
+		<p class="eyebrow mb-4">Agent-native programming</p>
+		<h1 class="text-accent-2 max-w-2xl text-3xl leading-[1.15] font-bold tracking-tight sm:text-4xl">
+			Software should not merely tolerate coding agents. It should make the correct action obvious.
+		</h1>
+		<p class="text-muted mt-6 max-w-prose leading-relaxed">
+			We write about APIs, CLIs, errors, documentation, and infrastructure designed for software
+			agents that need to understand, change, verify, and ship real systems. Predictable interfaces,
+			structured output, explicit side effects — the properties that let an agent act without
+			guessing.
+		</p>
+	</section>
+
+	{/* Latest article, featured */}
+	{
+		latest && (
+			<section class="mb-16">
+				<h2 class="eyebrow mb-5">Latest</h2>
+				<a
+					class="group border-border hover:border-accent bg-surface/40 block rounded-lg border p-6 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] sm:p-8"
+					href={`/posts/${latest.id}/`}
+				>
+					<div class="text-muted flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs">
+						<FormattedDate date={latest.data.publishDate} />
+						{latest.data.series && (
+							<>
+								<span aria-hidden="true">·</span>
+								<span>{latest.data.series}</span>
+							</>
+						)}
+					</div>
+					<h3 class="text-accent-2 group-hover:text-accent mt-3 text-2xl font-semibold tracking-tight transition-colors">
+						{latest.data.title}
+					</h3>
+					<p class="text-muted mt-2 max-w-prose leading-relaxed">{latest.data.description}</p>
+					<span class="text-accent mt-4 inline-flex items-center gap-x-1.5 font-mono text-sm">
+						Read article <span aria-hidden="true" class="transition-transform group-hover:translate-x-0.5">→</span>
+					</span>
+				</a>
+			</section>
+		)
+	}
+
+	{/* More articles */}
+	{
+		more.length > 0 && (
+			<section class="mb-8">
+				<div class="mb-5 flex items-baseline justify-between">
+					<h2 class="eyebrow">More articles</h2>
+					<a class="link text-muted hover:text-accent-2 font-mono text-xs" href="/posts/">
+						All articles →
+					</a>
+				</div>
+				<ul class="divide-border divide-y" role="list">
+					{more.map((p) => (
+						<li class="py-3">
+							<a
+								class="group flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-4"
+								href={`/posts/${p.id}/`}
+							>
+								<FormattedDate
+									class="text-muted shrink-0 font-mono text-xs sm:w-28"
+									date={p.data.publishDate}
+								/>
+								<span class="text-global-text group-hover:text-accent transition-colors">
+									{p.data.title}
+								</span>
+							</a>
+						</li>
+					))}
+				</ul>
+			</section>
+		)
+	}
+
+	{
+		allPosts.length === 0 && (
+			<p class="text-muted">No articles yet. The first one is on its way.</p>
+		)
+	}
+</PageLayout>

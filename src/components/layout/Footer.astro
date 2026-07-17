@@ -1,0 +1,29 @@
+---
+const year = new Date().getFullYear();
+const repoUrl = "https://github.com/kychee-com/tech-blog";
+---
+
+<footer class="border-border text-muted mt-24 border-t pt-8 pb-10 text-sm">
+	<div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+		<div class="max-w-sm">
+			<p class="eyebrow mb-2">HTTP 402 · Payment Required</p>
+			<p class="text-muted/90 leading-relaxed">
+				This blog is a static Astro site. Its content lives in Git and it is deployed on
+				<a class="link text-global-text" href="https://run402.com">Run402</a> — the same platform
+				we write about. We feel the deploy friction first.
+			</p>
+		</div>
+		<nav aria-label="Footer" class="flex flex-col gap-y-2 sm:items-end">
+			<a class="link hover:text-accent-2" href="/posts/">Articles</a>
+			<a class="link hover:text-accent-2" href="/about/">About</a>
+			<a class="link hover:text-accent-2" href="/rss.xml">RSS</a>
+			<a class="link hover:text-accent-2" href={repoUrl} rel="noopener" target="_blank">GitHub ↗</a>
+			<a class="link hover:text-accent-2" href="https://run402.com" rel="noopener" target="_blank"
+				>run402.com ↗</a
+			>
+		</nav>
+	</div>
+	<p class="text-muted/70 mt-8 font-mono text-xs">
+		<span class="text-accent">&gt;</span> © {year} Run402 · MIT-licensed · open source
+	</p>
+</footer>

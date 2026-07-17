@@ -1,0 +1,43 @@
+---
+import PageLayout from "@/layouts/Base.astro";
+
+const meta = {
+	title: "About",
+	description: "What agent-native programming means, and why Run402 is writing about it.",
+};
+---
+
+<PageLayout meta={meta}>
+	<h1 class="title mb-3 text-3xl">About this blog</h1>
+	<p class="eyebrow mb-10">Agent-native programming</p>
+
+	<div class="prose prose-sm max-w-none">
+		<p>
+			Coding agents are now first-class users of software. They read documentation, inspect
+			repositories, run CLIs, call APIs, change configuration, recover from failures, and ship
+			systems — often with no human watching the terminal. <strong>Agent-native programming</strong>
+			is the practice of designing interfaces so that the correct action is obvious to a program,
+			not just discoverable by a person.
+		</p>
+		<p>
+			That means predictable and discoverable surfaces, typed and structured output, commands that
+			are non-interactive when asked, side effects that are explicit, operations that are idempotent
+			where possible, and errors that actually help you recover. Interfaces that are merely
+			<em>usable</em> by a careful human are frequently ambiguous to an agent. We write about closing
+			that gap.
+		</p>
+		<p>
+			<a class="link inline-block" href="https://run402.com">Run402</a> is a platform for exactly
+			these users — agents that build and deploy real backends. We publish this series because the
+			principles are worth writing down one at a time, and because some articles will eventually
+			ship an open-source skill that teaches a coding agent to apply the principle directly.
+		</p>
+		<p>
+			The blog is open. Every article is Markdown or MDX committed to Git — there is no CMS and no
+			database. The site itself is a static Astro build
+			<a class="link inline-block" href="https://github.com/kychee-com/tech-blog">deployed on Run402</a
+			>. Dogfooding is the point: the friction of deploying and maintaining a real site on our own
+			platform should become visible to us before it reaches anyone else.
+		</p>
+	</div>
+</PageLayout>

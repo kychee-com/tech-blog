@@ -1,0 +1,155 @@
+---
+import Search from "@/components/Search.astro";
+import ThemeToggle from "@/components/ThemeToggle.astro";
+import { menuLinks, siteConfig } from "@/site.config";
+---
+
+<header class="group relative mb-16 flex items-center gap-x-2 sm:mb-20" id="main-header">
+	<div class="flex items-center">
+		<a
+			aria-current={Astro.url.pathname === "/" ? "page" : false}
+			class="flex items-center gap-x-2.5"
+			href="/"
+		>
+			{
+				siteConfig.showLogo && (
+					<svg
+						aria-hidden="true"
+						class="h-8 w-8 shrink-0"
+						focusable="false"
+						viewBox="0 0 64 64"
+						xmlns="http://www.w3.org/2000/svg"
+					>
+						<rect
+							x="2"
+							y="2"
+							width="60"
+							height="60"
+							rx="14"
+							fill="#0a0a0f"
+							stroke="currentColor"
+							stroke-width="3"
+							class="text-accent"
+						/>
+						<text
+							x="32"
+							y="43"
+							text-anchor="middle"
+							font-family="ui-monospace, monospace"
+							font-size="30"
+							font-weight="700"
+							fill="currentColor"
+							class="text-accent"
+						>
+							&gt;$
+						</text>
+					</svg>
+				)
+			}
+			<span class="flex items-baseline gap-x-1.5">
+				<span class="text-accent-2 text-lg font-bold tracking-tight">Run402</span>
+				<span class="text-muted font-mono text-sm">blog</span>
+			</span>
+		</a>
+		<nav
+			aria-label="Main navigation"
+			class="bg-global-bg border-border absolute -inset-x-4 top-12 z-50 hidden flex-col gap-y-1 border-y px-4 py-4 group-[.menu-open]:flex sm:static sm:z-auto sm:ms-6 sm:flex sm:flex-row sm:items-center sm:gap-x-5 sm:border-0 sm:bg-transparent sm:p-0"
+			id="navigation-menu"
+		>
+			{
+				menuLinks.map((link) => (
+					<a
+						aria-current={Astro.url.pathname === link.path ? "page" : false}
+						class="text-muted hover:text-accent-2 aria-[current=page]:text-accent-2 py-1.5 text-sm font-medium underline-offset-4 transition-colors hover:underline sm:py-0"
+						href={link.path}
+						{...link.external ? { target: "_blank", rel: "noopener" } : {}}
+					>
+						{link.title}
+						{link.external && <span aria-hidden="true" class="text-muted/70 ms-0.5 text-xs">↗</span>}
+					</a>
+				))
+			}
+		</nav>
+	</div>
+
+	<div class="ms-auto flex items-center gap-x-1">
+		<a
+			class="text-muted hover:text-accent-2 hidden rounded-md p-2 transition-colors sm:inline-flex"
+			href="/rss.xml"
+			title="RSS feed"
+		>
+			<span class="sr-only">RSS feed</span>
+			<svg
+				aria-hidden="true"
+				class="h-5 w-5"
+				fill="none"
+				focusable="false"
+				stroke="currentColor"
+				stroke-width="1.7"
+				viewBox="0 0 24 24"
+				xmlns="http://www.w3.org/2000/svg"
+			>
+				<path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" stroke-linecap="round" />
+				<circle cx="5" cy="19" r="1.4" fill="currentColor" stroke="none" />
+			</svg>
+		</a>
+		<Search />
+		<ThemeToggle />
+		<mobile-button>
+			<button
+				aria-expanded="false"
+				aria-haspopup="menu"
+				class="group text-muted hover:text-accent-2 relative ms-1 h-9 w-9 sm:invisible sm:hidden"
+				id="toggle-navigation-menu"
+				type="button"
+			>
+				<span class="sr-only">Open main menu</span>
+				<svg
+					aria-hidden="true"
+					class="absolute start-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 transition-all group-aria-expanded:scale-0 group-aria-expanded:opacity-0"
+					fill="none"
+					focusable="false"
+					stroke="currentColor"
+					stroke-width="1.5"
+					viewBox="0 0 24 24"
+					xmlns="http://www.w3.org/2000/svg"
+				>
+					<path d="M3.75 9h16.5m-16.5 6.75h16.5" stroke-linecap="round" stroke-linejoin="round"></path>
+				</svg>
+				<svg
+					aria-hidden="true"
+					class="text-accent absolute start-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 scale-0 opacity-0 transition-all group-aria-expanded:scale-100 group-aria-expanded:opacity-100"
+					fill="none"
+					focusable="false"
+					stroke="currentColor"
+					stroke-width="1.5"
+					viewBox="0 0 24 24"
+					xmlns="http://www.w3.org/2000/svg"
+				>
+					<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
+				</svg>
+			</button>
+		</mobile-button>
+	</div>
+</header>
+
+<script>
+	import { toggleClass } from "@/utils/domElement";
+
+	class MobileNavBtn extends HTMLElement {
+		#menuOpen = false;
+
+		connectedCallback() {
+			const headerEl = document.getElementById("main-header")!;
+			const mobileButtonEl = this.querySelector<HTMLButtonElement>("button");
+
+			mobileButtonEl?.addEventListener("click", () => {
+				if (headerEl) toggleClass(headerEl, "menu-open");
+				this.#menuOpen = !this.#menuOpen;
+				mobileButtonEl.setAttribute("aria-expanded", this.#menuOpen.toString());
+			});
+		}
+	}
+
+	customElements.define("mobile-button", MobileNavBtn);
+</script>

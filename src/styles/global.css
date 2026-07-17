@@ -1,0 +1,177 @@
+@layer theme, base, pagefind, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* tailwind: ignore the satori-generated og-image markup */
+@source not "../pages/og-image";
+@config "../../tailwind.config.ts";
+
+/* selector-based dark mode, driven by [data-theme] on <html> */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Run402 design tokens.
+   Palette derived from the run402.com brand: near-black canvas, neon-green
+   accent (the terminal `>$` mark), calm greys. Dark is the native mode; light
+   is an intentionally-designed warm paper — NOT an inversion.
+   Colours are animatable custom properties so the theme switch cross-fades.
+--------------------------------------------------------------------------- */
+@property --color-global-bg { syntax: "<color>"; inherits: true; initial-value: oklch(98.5% 0.004 95); }
+@property --color-surface   { syntax: "<color>"; inherits: true; initial-value: oklch(96.5% 0.005 95); }
+@property --color-global-text { syntax: "<color>"; inherits: true; initial-value: oklch(24% 0.012 265); }
+@property --color-muted     { syntax: "<color>"; inherits: true; initial-value: oklch(46% 0.02 262); }
+@property --color-border    { syntax: "<color>"; inherits: true; initial-value: oklch(90% 0.006 262); }
+@property --color-link      { syntax: "<color>"; inherits: true; initial-value: oklch(48% 0.12 176); }
+@property --color-accent    { syntax: "<color>"; inherits: true; initial-value: oklch(52% 0.13 165); }
+@property --color-accent-2  { syntax: "<color>"; inherits: true; initial-value: oklch(18% 0.012 265); }
+@property --color-quote     { syntax: "<color>"; inherits: true; initial-value: oklch(52% 0.13 165); }
+
+@theme {
+	--font-sans:
+		ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+		Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+	--font-mono:
+		ui-monospace, "JetBrains Mono", "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas,
+		"Liberation Mono", monospace;
+
+	/* light mode (paper) */
+	--color-global-bg: oklch(98.5% 0.004 95);
+	--color-surface: oklch(96.5% 0.005 95);
+	--color-global-text: oklch(24% 0.012 265);
+	--color-muted: oklch(46% 0.02 262);
+	--color-border: oklch(90% 0.006 262);
+	--color-link: oklch(48% 0.12 176);
+	--color-accent: oklch(52% 0.13 165);
+	--color-accent-2: oklch(18% 0.012 265);
+	--color-quote: oklch(52% 0.13 165);
+}
+
+@layer base {
+	html {
+		color-scheme: light dark;
+		accent-color: var(--color-accent);
+		scrollbar-gutter: stable;
+
+		&[data-theme="light"] {
+			color-scheme: light;
+		}
+
+		/* dark mode (native Run402 terminal) */
+		&[data-theme="dark"] {
+			color-scheme: dark;
+			--color-global-bg: oklch(13% 0.014 285);
+			--color-surface: oklch(17% 0.015 285);
+			--color-global-text: oklch(90% 0.006 260);
+			--color-muted: oklch(72% 0.021 258);
+			--color-border: oklch(28% 0.014 285);
+			--color-link: oklch(84% 0.15 165);
+			--color-accent: oklch(87% 0.2 165);
+			--color-accent-2: oklch(96% 0.004 260);
+			--color-quote: oklch(87% 0.2 165);
+		}
+
+		--color-mode-transition-duration: 260ms;
+		--color-mode-transition-easing: ease-in-out;
+		transition:
+			--color-global-bg var(--color-mode-transition-duration) var(--color-mode-transition-easing),
+			--color-surface var(--color-mode-transition-duration) var(--color-mode-transition-easing),
+			--color-global-text var(--color-mode-transition-duration) var(--color-mode-transition-easing),
+			--color-muted var(--color-mode-transition-duration) var(--color-mode-transition-easing),
+			--color-border var(--color-mode-transition-duration) var(--color-mode-transition-easing),
+			--color-link var(--color-mode-transition-duration) var(--color-mode-transition-easing),
+			--color-accent var(--color-mode-transition-duration) var(--color-mode-transition-easing),
+			--color-accent-2 var(--color-mode-transition-duration) var(--color-mode-transition-easing);
+	}
+
+	:target {
+		scroll-margin-block: 5ex;
+	}
+
+	@view-transition {
+		navigation: auto;
+	}
+
+	/* Respect reduced-motion: no colour cross-fade, no view transitions. */
+	@media (prefers-reduced-motion: reduce) {
+		html {
+			transition: none;
+		}
+		@view-transition {
+			navigation: none;
+		}
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
+	/* Subtle terminal-grid backdrop, low-contrast, behind all content. */
+	body::before {
+		content: "";
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		background-image:
+			linear-gradient(to right, color-mix(in oklch, var(--color-border) 55%, transparent) 1px, transparent 1px),
+			linear-gradient(to bottom, color-mix(in oklch, var(--color-border) 55%, transparent) 1px, transparent 1px);
+		background-size: 44px 44px;
+		mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, black 0%, transparent 78%);
+		opacity: 0.5;
+	}
+
+	/* Astro responsive image styles */
+	:where([data-astro-image]) {
+		object-fit: var(--fit);
+		object-position: var(--pos);
+	}
+	[data-astro-image="full-width"] {
+		width: 100%;
+	}
+	[data-astro-image="constrained"] {
+		max-width: 100%;
+	}
+}
+
+@layer components {
+	@import "./components/admonition.css";
+	@import "./components/github-card.css";
+
+	/* Underline-on-hover link used across previews and prose. */
+	.link {
+		@apply underline decoration-transparent underline-offset-2 transition-colors hover:decoration-[var(--color-link)] hover:decoration-2;
+	}
+
+	.title {
+		@apply text-accent-2 text-2xl font-semibold tracking-tight;
+	}
+
+	/* Signature motif: a monospace section label prefixed by the `>` prompt.
+	   Used sparingly on section headers and the footer. */
+	.eyebrow {
+		@apply text-muted font-mono text-xs font-medium tracking-[0.18em] uppercase;
+	}
+	.eyebrow::before {
+		content: "> ";
+		@apply text-accent;
+	}
+}
+
+@utility prose {
+	--tw-prose-body: var(--color-global-text);
+	--tw-prose-bold: var(--color-global-text);
+	--tw-prose-bullets: var(--color-muted);
+	--tw-prose-code: var(--color-global-text);
+	--tw-prose-headings: var(--color-accent-2);
+	--tw-prose-hr: var(--color-border);
+	--tw-prose-links: var(--color-global-text);
+	--tw-prose-quotes: var(--color-quote);
+	--tw-prose-th-borders: var(--color-border);
+	--tw-prose-td-borders: var(--color-border);
+}

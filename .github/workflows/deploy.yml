@@ -1,0 +1,47 @@
+name: Deploy
+
+# Build the static Astro site and deploy it to Run402 on every push to main.
+#
+# Auth is KEYLESS: inside GitHub Actions, `run402 deploy apply` exchanges the
+# GitHub OIDC token for a short-lived, deploy-scoped Run402 CI session
+# (requires `permissions: id-token: write`). No Run402 credential is stored in
+# this repo. A one-time provisioning step (project + `blog` subdomain claim +
+# CI binding for `repo:kychee-com/tech-blog:...`) must be done first by an
+# operator — see DESIGN.md → "Deploying".
+#
+# The CI deploy is content-only (`--dir dist`): a CI session cannot claim
+# subdomains, and the managed subdomain already tracks the project's live
+# release, so shipping the site is all that is needed.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # exchange the GitHub OIDC token for a Run402 CI session
+
+concurrency:
+  group: deploy-blog
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Set RUN402_PROJECT_ID as a repository variable after provisioning.
+    env:
+      RUN402_PROJECT_ID: ${{ vars.RUN402_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type-check content & schema
+        run: npm run check
+      - name: Build (Astro + Pagefind search index)
+        run: npm run build
+      - name: Deploy to Run402
+        run: npx run402 deploy apply --dir dist --json

@@ -1,0 +1,124 @@
+---
+import { type CollectionEntry, render } from "astro:content";
+import Masthead from "@/components/blog/Masthead.astro";
+import TOC from "@/components/blog/TOC.astro";
+import { getAllPosts } from "@/data/post";
+import { collectionDateSort } from "@/utils/date";
+import BaseLayout from "./Base.astro";
+
+interface Props {
+	post: CollectionEntry<"post">;
+}
+
+const { post } = Astro.props;
+const { ogImage, title, description, updatedDate, publishDate } = post.data;
+const socialImage = ogImage ?? `/og-image/${post.id}.png`;
+const articleDate = updatedDate?.toISOString() ?? publishDate.toISOString();
+const { headings, remarkPluginFrontmatter } = await render(post);
+const readingTime: string = remarkPluginFrontmatter.readingTime;
+
+// Previous / next in reverse-chronological order (newest first).
+const posts = (await getAllPosts()).sort(collectionDateSort);
+const idx = posts.findIndex((p) => p.id === post.id);
+const newer = idx > 0 ? posts[idx - 1] : undefined;
+const older = idx >= 0 && idx < posts.length - 1 ? posts[idx + 1] : undefined;
+---
+
+<BaseLayout
+	meta={{
+		articleDate,
+		description,
+		ogImage: socialImage,
+		title,
+	}}
+>
+	<a
+		class="text-muted hover:text-accent-2 mb-8 inline-flex items-center gap-x-1.5 font-mono text-xs transition-colors"
+		href="/posts/"
+	>
+		<span aria-hidden="true">←</span> All articles
+	</a>
+	<article class="grow break-words" data-pagefind-body>
+		<div id="blog-hero" class="mb-12"><Masthead content={post} readingTime={readingTime} /></div>
+		<div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+			{!!headings.length && <TOC headings={headings} />}
+			<div
+				class="prose prose-sm prose-headings:font-semibold prose-headings:text-accent-2 prose-headings:before:absolute prose-headings:before:-ms-4 prose-headings:before:text-muted prose-headings:hover:before:text-accent sm:prose-headings:before:content-['#'] sm:prose-th:before:content-none"
+			>
+				<slot />
+			</div>
+		</div>
+	</article>
+
+	{
+		(newer || older) && (
+			<nav
+				aria-label="More articles"
+				class="border-border mt-16 grid gap-4 border-t pt-8 sm:grid-cols-2"
+			>
+				{older ? (
+					<a
+						class="group border-border hover:border-accent rounded-lg border p-4 transition-colors"
+						href={`/posts/${older.id}/`}
+					>
+						<span class="text-muted font-mono text-xs">← Older</span>
+						<span class="text-global-text group-hover:text-accent mt-1 block font-medium transition-colors">
+							{older.data.title}
+						</span>
+					</a>
+				) : (
+					<span />
+				)}
+				{newer && (
+					<a
+						class="group border-border hover:border-accent rounded-lg border p-4 text-right transition-colors sm:col-start-2"
+						href={`/posts/${newer.id}/`}
+					>
+						<span class="text-muted font-mono text-xs">Newer →</span>
+						<span class="text-global-text group-hover:text-accent mt-1 block font-medium transition-colors">
+							{newer.data.title}
+						</span>
+					</a>
+				)}
+			</nav>
+		)
+	}
+
+	<button
+		class="border-border hover:border-accent bg-surface text-global-text fixed end-4 bottom-8 z-90 flex h-11 w-11 translate-y-28 cursor-pointer items-center justify-center rounded-full border-2 opacity-0 transition-all transition-discrete duration-300 data-[show=true]:translate-y-0 data-[show=true]:opacity-100 sm:end-8"
+		data-show="false"
+		id="to-top-btn"
+	>
+		<span class="sr-only">Back to top</span>
+		<svg
+			aria-hidden="true"
+			class="h-5 w-5"
+			fill="none"
+			focusable="false"
+			stroke="currentColor"
+			stroke-width="2"
+			viewBox="0 0 24 24"
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<path d="M4.5 15.75l7.5-7.5 7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+		</svg>
+	</button>
+</BaseLayout>
+
+<script>
+	const scrollBtn = document.getElementById("to-top-btn") as HTMLButtonElement;
+	const targetHeader = document.getElementById("blog-hero") as HTMLDivElement;
+
+	function callback(entries: IntersectionObserverEntry[]) {
+		entries.forEach((entry) => {
+			scrollBtn.dataset.show = (!entry.isIntersecting).toString();
+		});
+	}
+
+	scrollBtn.addEventListener("click", () => {
+		document.documentElement.scrollTo({ behavior: "smooth", top: 0 });
+	});
+
+	const observer = new IntersectionObserver(callback);
+	observer.observe(targetHeader);
+</script>

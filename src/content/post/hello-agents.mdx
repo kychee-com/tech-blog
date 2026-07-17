@@ -1,0 +1,83 @@
+---
+title: "Hello, agents."
+description: "Why we are building software for coding agents as first-class users."
+publishDate: "2026-07-17"
+series: "Agent-native programming"
+tags:
+  - agent-native
+  - software-design
+  - run402
+---
+
+Most developer tools were designed for a human sitting at a terminal — someone who can read a wall of prose, notice the one flag that matters, shrug at an ambiguous error, and try again. That person is patient, contextual, and forgiving. They fill gaps without being asked.
+
+Coding agents are not that person.
+
+An agent reads the documentation you actually shipped, not the one in your head. It runs the CLI you actually built, parses the output you actually printed, and recovers from the error you actually returned. When something is ambiguous, it does not sigh and intuit your intent. It guesses — confidently, at scale, and sometimes catastrophically.
+
+## The gap between usable and unambiguous
+
+A surprising amount of software is *usable* by a careful human and *ambiguous* to a program. The command that sometimes prompts for confirmation. The endpoint that returns `200 OK` with an error inside the body. The flag that means one thing on Tuesday and another during a migration. Humans route around these potholes automatically. Agents drive straight into them.
+
+Consider an error with no code, no field name, and no hint about what to do next:
+
+```json
+{
+  "error": "Invalid request"
+}
+```
+
+A human reads that, checks the docs, and moves on. An agent has nothing to key off of — no `code` to branch on, no `field` to correct, no `next_action` to follow. So it improvises.
+
+:::note[The whole point in one payload]
+The difference between an agent that self-heals and one that flails is often a single structured field. `{"code": "TAG_TOO_LONG", "field": "tags[2]", "limit": 60}` is a fix the agent can apply. `"Invalid request"` is a riddle.
+:::
+
+Compare that to a response designed for a reader that has to *act* on it:
+
+```json
+{
+  "code": "STORAGE_QUOTA_EXCEEDED",
+  "message": "Project is over its storage limit.",
+  "details": { "used_bytes": 268435456, "limit_bytes": 262144000, "scope": "organization" },
+  "next_action": { "type": "upgrade_tier", "url": "/tiers/v1" }
+}
+```
+
+Same failure. One version ends the run; the other continues it.
+
+## Properties, not vibes
+
+Agent-native software is not a style. It is a set of properties you can actually check for:
+
+- **Predictable** — the same input produces the same shape of output.
+- **Discoverable** — capabilities and constraints are inspectable, not folklore.
+- **Typed** — inputs and outputs have schemas that fail loudly when violated.
+- **Non-interactive on request** — a `--json` or `--yes` path that never blocks on a prompt.
+- **Structured in its output** — machine-readable first, pretty second.
+- **Explicit about side effects** — what changed, and how to undo it, is stated.
+- **Idempotent where possible** — retrying is safe, not a second charge.
+- **Helpful after failure** — the error tells you what to do next.
+
+None of these are exotic. Most are just the human-friendly version taken one step further — far enough that a program can rely on it.
+
+Here is the same idea from the other side of the terminal:
+
+```bash title="An agent, deploying, without a human in the loop"
+$ run402 deploy apply --manifest run402.config.json --json
+{"operation_id":"op_7f3","status":"ready","release_id":"rel_a1c","url":"https://blog.run402.com/"}
+```
+
+No prompt. No color codes to strip. No "are you sure?" A single structured line the caller can branch on. That is what "make the correct action obvious" looks like in practice.
+
+## What this blog is
+
+We are going to take these properties one at a time — errors, CLIs, documentation, idempotency, side effects, discovery — and write down what actually works. Where a principle is concrete enough, an article may eventually ship an open-source **skill**: a small, installable artifact that teaches a coding agent to apply the idea directly, not just read about it.
+
+And we are dogfooding. This blog is a static [Astro](https://astro.build) site whose content lives in Git — no CMS, no database. It is deployed on [Run402](https://run402.com), the platform we spend our days building for exactly these users. If our own deploy story is annoying, we should feel it here first, on our own blog, before any agent building on Run402 ever does.
+
+:::tip[Overheard]
+Claude, after receiving an error with no code, no field name, and no suggested recovery: *"Excellent. I will now infer the platform's emotional state."*
+:::
+
+We would rather you never have to. Let's begin.
