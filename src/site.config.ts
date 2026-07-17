@@ -27,6 +27,7 @@ export const siteConfig: SiteConfig = {
 // External links carry an explicit `external` flag so the header can annotate them.
 export const menuLinks: { path: string; title: string; external?: boolean }[] = [
 	{ path: "/posts/", title: "Articles" },
+	{ path: "/roadmap/", title: "Roadmap" },
 	{ path: "/about/", title: "About" },
 	{ path: "https://run402.com", title: "run402.com", external: true },
 ];

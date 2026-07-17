@@ -1,6 +1,7 @@
 ---
 import { type CollectionEntry, render } from "astro:content";
 import Masthead from "@/components/blog/Masthead.astro";
+import SkillCard from "@/components/blog/SkillCard.astro";
 import TOC from "@/components/blog/TOC.astro";
 import { getAllPosts } from "@/data/post";
 import { collectionDateSort } from "@/utils/date";
@@ -48,6 +49,7 @@ const older = idx >= 0 && idx < posts.length - 1 ? posts[idx + 1] : undefined;
 				<slot />
 			</div>
 		</div>
+		{post.data.skill && <SkillCard skill={post.data.skill} />}
 	</article>
 
 	{

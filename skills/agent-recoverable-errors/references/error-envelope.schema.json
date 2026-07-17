@@ -1,0 +1,81 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://tech-blog.run402.com/schemas/error-envelope.v1.json",
+	"title": "Agent-recoverable error envelope",
+	"description": "A transport-neutral error shape an automated client can classify, recover from, and retry safely. Adapt field names to an existing envelope rather than forcing these; the semantics are the contract, not the spelling. Over HTTP this maps cleanly onto RFC 9457 problem details, with these fields as extension members.",
+	"type": "object",
+	"required": ["code", "message", "retryable", "safe_to_retry"],
+	"additionalProperties": true,
+	"properties": {
+		"code": {
+			"type": "string",
+			"pattern": "^[A-Z][A-Z0-9_]*$",
+			"description": "Stable machine identifier. The ONLY field clients branch on. Never renamed or reused with a new meaning once published."
+		},
+		"message": {
+			"type": "string",
+			"description": "Human-readable explanation. Mutable prose; clients must never parse or branch on it."
+		},
+		"retryable": {
+			"type": "boolean",
+			"description": "May this condition clear — with time, or after the caller changes something? Says nothing about duplicate safety."
+		},
+		"safe_to_retry": {
+			"type": "boolean",
+			"description": "If the caller repeats the identical request, is a duplicate side effect impossible? For mutations, true requires a nameable idempotency mechanism."
+		},
+		"mutation_state": {
+			"type": "string",
+			"enum": ["none", "committed", "unknown"],
+			"description": "What the failed request did to system state. REQUIRED on mutation surfaces. 'unknown' obligates the producer to expose a read-only reconciliation path, named in next_actions."
+		},
+		"details": {
+			"type": "object",
+			"description": "Structured, machine-readable specifics (limits, observed values, offending fields). Never credentials, tokens, stack traces, SQL, or internal hostnames. Validation errors SHOULD locate fields with RFC 6901 JSON Pointers.",
+			"properties": {
+				"retry_after_seconds": {
+					"type": "number",
+					"minimum": 0,
+					"description": "Machine-readable backoff for rate limits and transient conditions."
+				},
+				"pointer": {
+					"type": "string",
+					"description": "RFC 6901 JSON Pointer to the offending request field, e.g. \"/tags/2\"."
+				}
+			},
+			"additionalProperties": true
+		},
+		"next_actions": {
+			"type": "array",
+			"description": "Typed, advisory recovery steps. Advice, not authority: consuming agents apply their own policy; producers emit only allowlisted types with structured parameters, never free-text imperatives.",
+			"items": {
+				"type": "object",
+				"required": ["type"],
+				"additionalProperties": true,
+				"properties": {
+					"type": {
+						"type": "string",
+						"pattern": "^[a-z][a-z0-9_]*$",
+						"description": "Allowlisted action identifier, e.g. free_storage, review_tiers, edit_request, reconcile_state."
+					},
+					"href": {
+						"type": "string",
+						"description": "Resource or documentation URL relevant to the action."
+					},
+					"command": {
+						"type": "string",
+						"description": "A suggested command. Advisory data — a consuming agent validates it against its own policy before use."
+					},
+					"why": {
+						"type": "string",
+						"description": "One-line human rationale for the suggestion."
+					}
+				}
+			}
+		},
+		"trace_id": {
+			"type": "string",
+			"description": "Correlation identifier joining this public envelope to private logs/traces, so details can stay redacted."
+		}
+	}
+}

@@ -4,7 +4,7 @@
 	"version": "0.1.0",
 	"private": false,
 	"description": "Run402 engineering blog — agent-native programming. Static Astro, content in Git, deployed on Run402.",
-	"homepage": "https://blog.run402.com/",
+	"homepage": "https://tech-blog.run402.com/",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/kychee-com/tech-blog.git"

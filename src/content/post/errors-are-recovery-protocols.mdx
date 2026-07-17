@@ -1,0 +1,257 @@
+---
+title: "Errors are recovery protocols"
+description: "How to tell an automated client what failed, whether retrying is safe, what changed, and what to do next."
+publishDate: "2026-07-17"
+draft: true
+series: "Agent-native programming"
+tags:
+  - agent-native
+  - api-design
+  - errors
+  - reliability
+skill:
+  name: "agent-recoverable-errors"
+  path: "skills/agent-recoverable-errors"
+---
+
+While wiring up this blog's deploy pipeline, a coding agent hit this:
+
+```json title="403, from the Run402 gateway, during this blog's first CI deploy"
+{
+  "code": "FORBIDDEN",
+  "message": "no binding matches this token",
+  "retryable": false,
+  "safe_to_retry": true,
+  "mutation_state": "none",
+  "hint": "The OIDC token was valid, but no active Run402 CI binding allowed this workflow.",
+  "next_actions": [
+    {
+      "type": "edit_request",
+      "command": "run402 ci list --project <prj_...>",
+      "why": "Inspect active CI bindings for this project."
+    }
+  ],
+  "trace_id": "trc_ca81e54b7de94235889362983016971c"
+}
+```
+
+The agent ran the suggested command, compared the binding's subject pattern to
+the token's actual claims, found a mismatch (this GitHub org embeds numeric IDs
+in its OIDC subjects), re-linked the binding, and pushed. The next deploy went
+green. Total human involvement: zero.
+
+That is what an error is *for*. An error is not the end of an interaction — it
+is the beginning of the client's next decision. Most errors are written as
+apologies. They should be written as protocols.
+
+## Prose is not a protocol
+
+Here is the claim, stated so you can disagree with it: **an automated client
+must be able to decide its next action from an error without reading the
+message.** If your errors don't support that, they are not done — no matter how
+nicely worded they are.
+
+`"Invalid request"` obviously fails this test. But so does a *good* message:
+
+```json
+{ "error": "The upload would exceed your organization's storage quota." }
+```
+
+A human reads that and knows what to do. A program has nothing to branch on.
+Is this permanent? Did anything get written? Is sending it again going to
+double-charge someone? The message is clear and the contract is empty. English
+is for humans; fields are for callers. You need both, and they do different
+jobs.
+
+## The envelope
+
+The same failure, written as a recovery protocol:
+
+```json
+{
+  "code": "STORAGE_QUOTA_EXCEEDED",
+  "message": "The upload would exceed the organization's storage quota.",
+  "retryable": false,
+  "safe_to_retry": true,
+  "mutation_state": "none",
+  "details": {
+    "scope": "organization",
+    "used_bytes": 268435456,
+    "limit_bytes": 262144000,
+    "requested_bytes": 10485760
+  },
+  "next_actions": [
+    { "type": "free_storage", "minimum_bytes": 10485760 },
+    { "type": "review_tiers", "href": "/v1/billing/tiers" }
+  ],
+  "trace_id": "trc_01JZ8K7P7AB3H0YFQ2V1N6M4R9"
+}
+```
+
+Each field answers one question a caller must answer anyway:
+
+- **`code`** — what failed, as a stable identifier. Clients branch on `code`,
+  never on English. Messages may be reworded freely; a published code is never
+  renamed or reused with a different meaning.
+- **`retryable` / `safe_to_retry`** — two different questions (next section).
+- **`mutation_state`** — what actually happened to system state.
+- **`details`** — the machine-readable specifics: limits, observed values, and
+  for validation failures a precise location (`"pointer": "/tags/2"`, JSON
+  Pointer per RFC 6901) instead of a prose description of where the problem is.
+- **`next_actions`** — typed suggestions for what to do about it.
+- **`trace_id`** — the join key between this public envelope and your private
+  logs, which is what lets everything else stay redacted.
+
+Over HTTP, none of this requires inventing a standard. RFC 9457 (Problem
+Details) explicitly supports extension members; ship
+`application/problem+json` and carry these fields alongside `type`, `title`,
+and `status`. The RFC's `type` URI and a stable `code` complement each other —
+one names the problem class for the ecosystem, the other gives your clients a
+compact branch point.
+
+## Retry likelihood is not duplicate safety
+
+The most consequential distinction in the envelope is the one almost every API
+collapses: *"might this work if tried again?"* and *"is trying again safe?"*
+are independent.
+
+**`retryable`** asks whether the condition may clear — with time, or after the
+caller changes something.
+
+**`safe_to_retry`** asks whether repeating the identical request can produce a
+duplicate side effect.
+
+| `retryable` | `safe_to_retry` | Required client behavior                                                          |
+| ----------- | --------------- | --------------------------------------------------------------------------------- |
+| `false`     | `false`         | Do not repeat blindly; inspect state or change strategy.                          |
+| `false`     | `true`          | Repetition is duplicate-safe, but a prerequisite or request edit is needed first. |
+| `true`      | `false`         | The condition may clear, but the caller must reconcile state before retrying.     |
+| `true`      | `true`          | A bounded automatic retry is reasonable, normally with the same idempotency key.  |
+
+The `FORBIDDEN` error at the top of this article is the second row:
+`retryable: false` (the binding will not fix itself), `safe_to_retry: true`
+(re-sending cannot duplicate anything — nothing was mutated). That pairing told
+the agent, precisely: *don't loop, fix the prerequisite, then send the same
+request again without fear.* A single boolean could not have said that.
+
+This matters most for mutations. HTTP's definition of idempotency (RFC 9110)
+exists exactly because clients retry after communication failures — but your
+`POST /transfers` doesn't get idempotency for free from the method table. If a
+mutation advertises `safe_to_retry: true`, you must be able to name the
+mechanism that makes the duplicate harmless: an idempotency key, natural
+idempotence, or server-side deduplication. If you can't name it, the field is
+a lie with a schema.
+
+## When you don't know what happened
+
+The hardest error to design is the one where *you don't know the outcome*. The
+connection died mid-commit. The timeout fired while the payment processor was
+deciding. The deploy crashed between upload and activation.
+
+That is what `mutation_state` is for:
+
+- **`none`** — the request failed before any side effect. Retry freely once
+  the underlying problem is fixed.
+- **`committed`** — the side effect happened, then something else failed
+  (say, rendering the response). Do not re-send; move forward.
+- **`unknown`** — the honest answer nobody wants to write. The commit boundary
+  was crossed or not; the server can't say from here.
+
+`unknown` comes with an obligation: **a mutation with an unknown outcome must
+expose a read-only reconciliation path before another mutation is attempted.**
+A status endpoint, an idempotent lookup by the client's own key, an operation
+handle — something the caller can `GET` to convert *unknown* into *committed*
+or *none*. If your API can emit "unknown" but offers no way to find out, you
+haven't shipped an error; you've shipped a coin flip.
+
+:::note[The test that finds this]
+Kill the connection immediately after the commit boundary in a test, then
+assert that the caller can reach a definitive outcome using only read-only
+calls. If you can't write that test, you don't know your own commit
+boundaries — and neither will your callers.
+:::
+
+## Next actions are advice, not authority
+
+`next_actions` is the field that turned the opening error into a fixed deploy —
+and it is also the field most likely to be designed badly.
+
+Two rules keep it honest.
+
+**For producers:** emit only allowlisted, typed actions with structured
+parameters — `{ "type": "free_storage", "minimum_bytes": 10485760 }` — never
+free-text imperatives. Anything you put in a recovery field, some client
+somewhere will execute. Never relay text derived from untrusted input (user
+content, upstream error messages) into a field shaped like an instruction;
+that is a prompt-injection surface wearing a helpful hat.
+
+**For consumers:** the suggestions are data, not commands. The agent that fixed
+this blog's CI binding didn't blindly run what it was handed — it ran a
+read-only inspection command, verified the diagnosis against the token's actual
+claims, and *then* mutated. Earlier that same day, a different error suggested
+`run402 allowance create` — correct in general, wrong for a keyless CI context.
+Structure is what limits the blast radius of well-meaning bad advice: a typed
+action can be evaluated against policy; a paragraph of prose can only be
+trusted or not.
+
+:::tip[Overheard]
+Claude, upon receiving a `next_actions` array for the first time: "Finally, an
+error that comes with a to-do list instead of a personality test."
+:::
+
+## One contract, every transport
+
+Agents don't experience your HTTP API, your CLI, and your SDK as different
+products — they experience them in the same afternoon. The envelope is a
+*logical* contract; each transport carries it natively:
+
+- **HTTP** — proper status code, envelope as the body (RFC 9457-compatible).
+- **CLI** — nonzero exit code, envelope as JSON on the error stream. Every
+  error printed by the `run402` CLI is the same JSON envelope the gateway
+  returned; the string a human reads and the structure an agent parses are the
+  same object.
+- **SDK** — typed exceptions that carry the full envelope as data, not just a
+  message string that used to be JSON before someone `.toString()`'d it.
+- **Agent tools (MCP)** — the envelope as the tool's structured error result.
+- **Async jobs** — the envelope persisted on the operation record, so a poll
+  an hour later returns exactly what a synchronous caller would have seen.
+
+Same codes, same semantics, everywhere. An agent that learned your errors in
+one transport should already know them in the rest.
+
+## Migrating without breaking anyone
+
+Nobody gets to rewrite their error surface in a weekend, and the envelope
+doesn't ask you to. The path is additive: keep emitting your legacy shape,
+add `code` first (it's the highest-value field), then retry semantics on
+mutations, then `mutation_state`, then typed actions. Contract-test that old
+clients still parse every response along the way. The only breaking change to
+avoid at all costs is silently changing what an existing field *means* —
+adding fields is routine; repurposing them is betrayal.
+
+## Ship it as a checklist
+
+The claim, once more: an automated client must be able to decide its next
+action from your error without reading the message. Concretely —
+
+1. Every error carries a stable `code`; clients never branch on English.
+2. `retryable` and `safe_to_retry` are separate, and every mutation's
+   `safe_to_retry: true` names its idempotency mechanism.
+3. Every mutation failure states `mutation_state`, and `unknown` always ships
+   with a read-only reconciliation path.
+4. `next_actions` are typed and allowlisted — advice, not authority.
+5. `details` are structured, point at fields with JSON Pointers, and never
+   contain secrets, stack traces, or internals; `trace_id` bridges to the
+   private logs.
+6. The same contract holds across HTTP, CLI, SDK, tools, and jobs.
+7. Tests exist for the retry table, the redaction rules, and the
+   kill-the-connection-after-commit case.
+
+This article ships as an executable version of itself: the
+**agent-recoverable-errors** skill below teaches a coding agent to audit,
+design, implement, or review an error surface against exactly this contract —
+on your codebase, not ours. It is the first companion skill of this series;
+the [roadmap](/roadmap/) lists what's next.
+
+Errors are where autonomy goes to die — or where it quietly keeps going. The
+difference is whether the failure came with a next move.

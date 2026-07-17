@@ -9,7 +9,8 @@ spec. When a decision here goes stale, fix the decision.
 The Run402 engineering blog — a static Astro site about **agent-native
 programming**. Content is Markdown/MDX in Git. No CMS, no database, no runtime
 API calls to render an article. It deploys on Run402 and is served at
-`blog.run402.com`.
+`tech-blog.run402.com` (with `blog.run402.com` as the desired future home once
+that reserved name is released).
 
 It is also a **dogfood**: a real first-party site shipped on the same platform
 we sell, so deploy and maintenance friction reaches us before it reaches a
@@ -110,10 +111,17 @@ DNS work; claiming subdomain `<name>` *is* `<name>.run402.com`.
 - **Repo variable:** `RUN402_PROJECT_ID = prj_1784293532542_0002`.
 
 **Every push** then deploys keyless via `.github/workflows/deploy.yml`:
-`npm ci → npm run check → npm run build → run402 sites deploy-dir dist`. The CI
-session is exchanged from the GitHub OIDC token; it can ship the `site` slice
-but cannot claim subdomains (the managed subdomain already tracks the live
-release).
+`npm ci → npm run check → npm run build → node scripts/build-release-spec.mjs
+dist > release-spec.json → run402 deploy apply --manifest release-spec.json`.
+`deploy apply` is the OIDC-capable command (`sites deploy-dir` uses the
+wallet-allowance path and fails keyless in CI with `NO_ALLOWANCE`); the spec
+script exists because `deploy apply --dir` is specifically for `@run402/astro`
+preset builds, not plain-static output. The CI session can ship the `site`
+slice but cannot claim subdomains (the managed subdomain already tracks the
+live release). Two gotchas encoded in the binding: the kychee-com GitHub org
+embeds numeric ids in the OIDC `sub`
+(`repo:kychee-com@265859594/tech-blog@1303911471:ref:refs/heads/main`), so the
+binding subject must match that exact form.
 
 ### `blog.run402.com` is reserved
 
@@ -124,10 +132,10 @@ move the site to `blog.run402.com`, a Run402 operator must free/assign the name
 (then `run402 subdomains claim blog --project prj_…`, or repoint at the edge).
 Until then the canonical URL is `tech-blog.run402.com`.
 
-> Note: `src/site.config.ts` still sets `url: https://blog.run402.com/` (the
-> intended canonical home). Until `blog` is released, either accept that
-> canonical/OG/RSS URLs point at the not-yet-live `blog.run402.com`, or change
-> `url` to `https://tech-blog.run402.com/` for a fully self-consistent site.
+> `src/site.config.ts` sets `url: https://tech-blog.run402.com/` — the address
+> that actually serves — so canonical/OG/RSS URLs are self-consistent. When an
+> operator releases `blog`, claim it and flip `url` back to
+> `https://blog.run402.com/` in the same change.
 
 **Owner-org note:** the intended long-term owner was the `cb31d1c5-…` run402 org
 (where skmeld/krello/kychon live), but that org's wallet was not available in
@@ -152,7 +160,11 @@ unchanged.
 
 ## Open questions / deferred
 
-- **Skill renderer** — deferred until the first article actually ships a skill.
+- **Skill renderer** — SHIPPED (first use: `errors-are-recovery-protocols` +
+  `skills/agent-recoverable-errors`). Deliberately minimal: a static card
+  (`src/components/blog/SkillCard.astro`) rendered only when a post carries
+  `skill` frontmatter — install command + GitHub links, no tracking, no
+  registry, no versions.
 - **OG image for non-post pages** — home/about fall back to the static
   `public/social-card.svg`; per-page satori cards are post-only for now.
 - **Owner org confirmation** — provision under the run402 org (`cb31d1c5-…`) per

@@ -1,0 +1,122 @@
+---
+import PageLayout from "@/layouts/Base.astro";
+
+// A living page, not a dated post: reorder, rename, or drop entries freely —
+// that's the point of keeping it out of the article stream. Hand-authored on
+// purpose; build a general series system only when ≥3 published articles make
+// the real requirements visible (see DESIGN.md).
+interface RoadmapEntry {
+	n: number;
+	title: string;
+	artifact: string | null;
+	status: "Published" | "In progress" | "Planned";
+	href?: string;
+}
+
+const entries: RoadmapEntry[] = [
+	{
+		n: 0,
+		title: "Hello, agents.",
+		artifact: null,
+		status: "Published",
+		href: "/posts/hello-agents/",
+	},
+	{
+		n: 1,
+		title: "Errors are recovery protocols",
+		artifact: "agent-recoverable-errors",
+		status: "In progress",
+	},
+	{ n: 2, title: "A CLI is an API", artifact: "agent-native-cli", status: "Planned" },
+	{
+		n: 3,
+		title: "Safe retries need evidence",
+		artifact: "retry & idempotency skill",
+		status: "Planned",
+	},
+	{
+		n: 4,
+		title: "Plan, apply, verify",
+		artifact: "side-effect workflow skill",
+		status: "Planned",
+	},
+];
+
+const furtherOut: string[] = [
+	"Long-running operations need handles",
+	"Make capabilities discoverable",
+	"Documentation agents can execute",
+	"Repository context is a product surface",
+	"Authentication without dead ends",
+	"Observability for automated operators",
+	"Dogfood: this blog on Run402",
+];
+
+const statusClass: Record<RoadmapEntry["status"], string> = {
+	Published: "text-accent",
+	"In progress": "text-global-text",
+	Planned: "text-muted",
+};
+
+const meta = {
+	title: "Roadmap",
+	description:
+		"Where the agent-native programming series is going: published, in-progress, and planned articles and their companion skills.",
+};
+---
+
+<PageLayout meta={meta}>
+	<h1 class="title mb-3 text-3xl">Roadmap</h1>
+	<p class="eyebrow mb-10">Agent-native programming</p>
+
+	<p class="text-muted mb-10 max-w-prose leading-relaxed">
+		The series, one property at a time. This page is navigation, not an archive — entries get
+		reordered, renamed, and dropped as the work teaches us better. Substantial articles ship a
+		companion <span class="text-global-text">Agent Skill</span> when the workflow is concrete
+		enough to execute and verify.
+	</p>
+
+	<div class="overflow-x-auto">
+		<table class="w-full border-collapse text-sm">
+			<thead>
+				<tr class="border-border border-b text-left">
+					<th class="text-muted py-2 pe-4 font-mono text-xs font-medium">#</th>
+					<th class="text-muted py-2 pe-4 font-mono text-xs font-medium">Article</th>
+					<th class="text-muted py-2 pe-4 font-mono text-xs font-medium">Companion artifact</th>
+					<th class="text-muted py-2 font-mono text-xs font-medium">Status</th>
+				</tr>
+			</thead>
+			<tbody>
+				{
+					entries.map((e) => (
+						<tr class="border-border border-b">
+							<td class="text-muted py-3 pe-4 font-mono text-xs">{e.n}</td>
+							<td class="py-3 pe-4 font-medium">
+								{e.href ? (
+									<a class="link text-global-text hover:text-accent" href={e.href}>
+										{e.title}
+									</a>
+								) : (
+									e.title
+								)}
+							</td>
+							<td class="text-muted py-3 pe-4 font-mono text-xs">{e.artifact ?? "—"}</td>
+							<td class:list={["py-3 font-mono text-xs", statusClass[e.status]]}>{e.status}</td>
+						</tr>
+					))
+				}
+			</tbody>
+		</table>
+	</div>
+
+	<h2 class="eyebrow mt-12 mb-4">Further out</h2>
+	<ul class="text-muted list-inside list-disc space-y-1 text-sm" role="list">
+		{furtherOut.map((t) => <li>{t}</li>)}
+	</ul>
+
+	<blockquote class="border-accent text-muted mt-12 max-w-prose border-s-2 ps-4 text-sm leading-relaxed">
+		Editorial rule: each article makes one falsifiable design claim, shows a bad and an improved
+		interface, examines at least one failure boundary, and leaves behind a contract or checklist.
+		A companion skill ships only when the workflow is concrete enough to execute and verify.
+	</blockquote>
+</PageLayout>

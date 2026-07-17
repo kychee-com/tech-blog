@@ -7,7 +7,11 @@ agents can use them correctly, predictably, and autonomously.
 A static [Astro](https://astro.build) site. **Content lives in Git as
 Markdown/MDX — there is no CMS and no database.** It builds to plain static
 HTML/CSS/JS with RSS, a sitemap, `robots.txt`, and a Pagefind search index, and
-deploys on [Run402](https://run402.com) at `blog.run402.com`.
+deploys on [Run402](https://run402.com).
+
+**Canonical and live URL:** https://tech-blog.run402.com/
+**Desired future URL:** https://blog.run402.com/ (a platform-reserved subdomain
+name; needs a Run402 operator to release it — see DESIGN.md).
 
 > Derived from the [Astro Cactus](https://github.com/chrismwilliams/astro-theme-cactus)
 > theme (MIT). See [DESIGN.md](./DESIGN.md) for the architecture and decisions.
@@ -72,11 +76,12 @@ built site (`npm run preview`), not just in dev.
 
 ## Deployment
 
-Deployed on Run402 via GitHub Actions. Every push to `main` builds and runs
-`run402 sites deploy-dir dist`, which inside Actions exchanges the GitHub OIDC
-token for a short-lived Run402 CI session — **no credential is stored in this
-repo.** The static `dist/` (search index included) ships to Run402's CAS and
-serves from the edge.
+Deployed on Run402 via GitHub Actions. Every push to `main` builds, assembles a
+ReleaseSpec from `dist/` (`scripts/build-release-spec.mjs`), and runs
+`run402 deploy apply --manifest release-spec.json` — the command that exchanges
+the GitHub OIDC token for a short-lived Run402 CI session, so **no credential is
+stored in this repo.** The static `dist/` (search index included) ships to
+Run402's CAS and serves from the edge.
 
 **Live:** https://tech-blog.run402.com (project `prj_1784293532542_0002`, org
 "Run402"). `blog.run402.com` is a platform-reserved subdomain name and needs a

@@ -1,0 +1,41 @@
+---
+/**
+ * Compact companion-skill card, rendered only when a post carries `skill`
+ * frontmatter. Deliberately minimal (DESIGN.md): install command + source
+ * links, derived entirely from `skill.name` / `skill.path`. No tracking, no
+ * registry, no versions, no client JS — the command is plain selectable text.
+ */
+interface Props {
+	skill: {
+		name: string;
+		path: string;
+	};
+}
+
+const { skill } = Astro.props;
+const repoUrl = "https://github.com/kychee-com/tech-blog";
+const sourceUrl = `${repoUrl}/tree/main/${skill.path}`;
+const skillMdUrl = `${repoUrl}/blob/main/${skill.path}/SKILL.md`;
+const installCommand = `npx skills add kychee-com/tech-blog --skill ${skill.name}`;
+---
+
+<aside aria-labelledby="skill-card-title" class="border-accent/40 bg-surface/40 mt-14 rounded-lg border p-6 sm:p-7">
+	<p class="eyebrow mb-3">Use this principle</p>
+	<h2 class="text-accent-2 font-mono text-lg font-semibold" id="skill-card-title">
+		{skill.name}
+	</h2>
+	<p class="text-muted mt-2 max-w-prose text-sm leading-relaxed">
+		This article ships as an installable Agent Skill — a workflow a coding agent can apply to your
+		codebase, with the contract, checklists, and hard rules built in.
+	</p>
+	<pre
+		class="border-border bg-global-bg mt-4 overflow-x-auto rounded-md border p-3 font-mono text-xs"><code>{installCommand}</code></pre>
+	<p class="mt-4 flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs">
+		<a class="link text-muted hover:text-accent-2" href={sourceUrl} rel="noopener" target="_blank"
+			>Inspect source ↗</a
+		>
+		<a class="link text-muted hover:text-accent-2" href={skillMdUrl} rel="noopener" target="_blank"
+			>Read SKILL.md ↗</a
+		>
+	</p>
+</aside>
