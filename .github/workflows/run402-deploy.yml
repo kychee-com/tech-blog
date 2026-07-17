@@ -1,0 +1,20 @@
+name: Run402 Deploy
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to run402
+        # Redirect stdin from /dev/null: a CI runner's stdin is a FIFO/file that
+        # older run402 CLIs counted as a second manifest source alongside --manifest.
+        run: npx --yes run402@4.8.0 deploy apply --manifest 'run402.deploy.json' --project 'prj_1784293532542_0002' < /dev/null
