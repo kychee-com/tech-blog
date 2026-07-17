@@ -23,3 +23,5 @@ pnpm-debug.log*
 *.pem
 .cache
 .astro
+# generated deploy artifact
+release-spec.json
